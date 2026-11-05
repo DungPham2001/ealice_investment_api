@@ -1,0 +1,36 @@
+const { Idempotency: Idem } = require('../models/system');
+const { AppError } = require('../utils/AppError');
+
+/**
+ * POST + Idempotency-Key: the first request runs, a repeat with the same key (same install, same URL) within 24 h gets the stored
+ * response back instead of creating a duplicate. Only 2xx responses are remembered, so a failed attempt can be retried.
+ */
+async function idempotency(req, res, next) {
+  const key = req.headers['idempotency-key'];
+  if (req.method !== 'POST' || !key) return next();
+  if (typeof key !== 'string' || key.length > 128) return next(new AppError(400, 'bad_request', 'Idempotency-Key must be a string of at most 128 characters.'));
+  const scope = `${req.ctx.installId}:${req.originalUrl}`;
+
+  try {
+    await Idem.create({ key, scope });
+  } catch (err) {
+    if (err.code !== 11000) return next(err);
+    const found = await Idem.findOne({ key, scope }).lean();
+    if (found?.state === 'done') {
+      res.set('Idempotent-Replay', 'true');
+      return found.body === null ? res.status(found.status).end() : res.status(found.status).json(found.body);
+    }
+    return next(new AppError(409, 'conflict', 'The same request is still being processed. Retry in a moment.'));
+  }
+
+  const send = res.json.bind(res);
+  res.json = (body) => {
+    const ok = res.statusCode >= 200 && res.statusCode < 300;
+    const done = ok ? Idem.updateOne({ key, scope }, { state: 'done', status: res.statusCode, body }) : Idem.deleteOne({ key, scope });
+    done.then(() => send(body), () => send(body));
+    return res;
+  };
+  return next();
+}
+
+module.exports = { idempotency };
