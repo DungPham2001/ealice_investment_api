@@ -22,7 +22,8 @@ function omitEmpty(v) {
 
 async function getContent(key) {
   const row = await Content.findById(key).lean();
-  return omitEmpty(row?.data ?? DEFAULTS[key]);
+  const data = omitEmpty(row?.data ?? DEFAULTS[key]);
+  return key === 'team' ? { ...data, items: data.items ?? [] } : data; // the team list is always an array
 }
 
 async function putContent(key, data) {

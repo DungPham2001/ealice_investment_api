@@ -445,7 +445,9 @@ test('public content: omit empty fields, admin edit', async () => {
   await admin.put('admin/public/company', { name: "EALICEA'S INVESTMENTS LLC", founded: 2015, hours: '', departments: [], values: ['Integrity'] }).expect(200);
   const c2 = (await api.get('public/company').expect(200)).body;
   assert.deepEqual(Object.keys(c2).sort(), ['founded', 'name', 'values']);
-  assert.deepEqual((await api.get('public/team').expect(200)).body, {});
+  assert.deepEqual((await api.get('public/team').expect(200)).body, { items: [] });
+  await admin.put('admin/public/team', { items: [{ name: 'Jane Doe', title: 'CEO', bio: '' }] }).expect(200);
+  assert.deepEqual((await api.get('public/team').expect(200)).body, { items: [{ name: 'Jane Doe', title: 'CEO' }] });
   await admin.put('admin/public/nope', {}).expect(422);
 });
 

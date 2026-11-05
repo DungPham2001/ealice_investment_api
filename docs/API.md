@@ -128,12 +128,73 @@ The server creates/reopens/closes `queue-items` with `auto: true` when leases, w
 
 Calendar `kind`: `lease-end`, `loan-maturity`, `work-order-due`, `renovation-end`, `service-provider-end`, `queue-target`, `task-due`, `risk-review`, `decision-review`.
 
+All report endpoints are `GET`, need no headers, and `entity` (an entity id such as `ENT-0001`) is accepted by `dashboard`, `series` and `revenue`. An unknown `entity` → `404`; a bad `metric` / `period` → `422`.
+
+### 4.1 `GET /v1/reports/highlights?period=month|quarter|year`
+
+`from` / `to` = the calendar period that was applied (current month / quarter / year).
+
+```json
+{
+  "period": "quarter", "from": "2026-10-01", "to": "2026-12-31",
+  "topProperties":  [{ "id": "PRO-0003", "name": "Bay House", "occupancy": 100, "noiMargin": 63.5, "score": 163.5 }],
+  "needAttention":  [{ "id": "PRO-0002", "name": "Palm Plaza", "occupancy": 66.7, "opexRatio": 59.6, "score": 51.8 }],
+  "leases": { "new": 6, "renewed": 1 },
+  "avgVacancyDays": 41,
+  "workOrdersClosed": 1,
+  "dealsCreated": 4,
+  "renovations": [{ "id": "REN-0001", "name": "Lobby and corridor refresh", "status": "In construction", "percent": 42 }],
+  "goals": [{ "id": "GL-0001", "name": "Reach 90% occupancy", "progress": 88.9 }],
+  "milestones": [{ "kind": "task-due", "resource": "tasks", "id": "TK-0001", "title": "Send lease renewal offers", "info": "Orchid Court", "date": "2026-11-10" }]
+}
+```
+
+* `topProperties`: up to 5 non-sold properties, best first; `score = occupancy + noiMargin`.
+* `needAttention`: up to 5, worst first; `score = occupancy − opexRatio / 4`.
+* `leases.new` = leases created in the period; `leases.renewed` = leases now `Renewed` and updated in the period.
+* `avgVacancyDays` = mean days since `vacantSince` over `Vacant` units (whole days, 0 if none).
+* `workOrdersClosed` = `Completed` work orders whose `done` date falls in the period; `dealsCreated` = deals created in the period.
+* `renovations` = projects in `In construction` / `Final inspection`; `goals[].progress` = min(current ÷ target, 1) × 100.
+* `milestones` = the next 5 calendar events (same item shape as `/calendar`, starting today).
+
+### 4.2 `GET /v1/reports/properties/metrics?ids=PRO-0001,PRO-0002`
+
+`ids` optional (omit = every property). Used by Compare, Scorecard and Map.
+
+```json
+{ "items": [{
+  "id": "PRO-0001", "name": "Orchid Court",
+  "occupancy": 91.7, "noiMargin": 61.2, "opexRatio": 38.8,
+  "ltv": 49.3, "dscr": 2.45,
+  "avgVacancyDays": 21, "openWorkOrders": 1, "capexWithin3y": 1,
+  "scores": { "occupancy": 91.7, "noi": 87.4, "expenses": 45.7, "maintenance": 75, "capex": 75, "dscr": 100 },
+  "score": 79.1
+}] }
+```
+
+* `ltv` = mean LTV and `dscr` = minimum DSCR of the property's loans that are not `Paid off`; both `null` when it has no such loan.
+* `scores` (each 0–100): `occupancy` as is · `noi = min(noiMargin / 70, 1) × 100` · `expenses = 100 − opexRatio × 1.4` · `maintenance = 100 − openWorkOrders × 25` · `capex = 100 − capexWithin3y × 25` · `dscr = min(dscr / 1.6, 1) × 100` (60 when no loan).
+* `score` = plain average of the six `scores`. The app may re-weight `scores` locally (weights are a client setting).
+* Unknown ids are simply absent from `items`.
+
+### 4.3 `GET /v1/reports/map`
+
+```json
+{ "items": [{ "city": "Orlando", "properties": 2, "units": 36, "occupancy": 83.3, "share": 50 }] }
+```
+
+One row per city (taken from the property `area` "City, ZIP"), non-sold properties only, biggest first. `share` = this city's share of the property count (%). No addresses or coordinates are ever returned.
+
+### 4.4 Revenue and series with `entity`
+
+`GET /v1/reports/revenue?period=…&entity=ENT-0001` and `GET /v1/reports/series?metric=…&period=…&entity=ENT-0001` return the same shape as without `entity`, computed over that entity's properties only (`entity` is ignored for the rent-collection part of `lossRate`).
+
 ## 5. Public company content (read-only)
 
 | Endpoint | Returns |
 |---|---|
 | `GET /v1/public/company` | `name, address, phone, email, website` (+ any extra fields the admin site filled in). Fields without data are omitted: hide them in the UI |
-| `GET /v1/public/team` | `{ "items": [...] }` — `{}` while empty |
+| `GET /v1/public/team` | `{ "items": [...] }` — always an array, `[]` while empty; each item is whatever the admin site stored (empty fields omitted) |
 
 ## 6. Server / admin endpoints (also open)
 
