@@ -2,14 +2,14 @@ const { Idempotency: Idem } = require('../models/system');
 const { AppError } = require('../utils/AppError');
 
 /**
- * POST + Idempotency-Key: the first request runs, a repeat with the same key (same install, same URL) within 24 h gets the stored
+ * POST + Idempotency-Key: the first request runs, a repeat with the same key (same client, same URL) within 24 h gets the stored
  * response back instead of creating a duplicate. Only 2xx responses are remembered, so a failed attempt can be retried.
  */
 async function idempotency(req, res, next) {
   const key = req.headers['idempotency-key'];
   if (req.method !== 'POST' || !key) return next();
   if (typeof key !== 'string' || key.length > 128) return next(new AppError(400, 'bad_request', 'Idempotency-Key must be a string of at most 128 characters.'));
-  const scope = `${req.ctx.installId}:${req.originalUrl}`;
+  const scope = `${req.ctx.actor}:${req.originalUrl}`;
 
   try {
     await Idem.create({ key, scope });

@@ -20,13 +20,6 @@ const Idempotency = make('Idempotency', 'idempotency_keys', {
   createdAt: { type: Date, default: Date.now, expires: 86400 },
 }, [[{ key: 1, scope: 1 }, { unique: true }]]);
 
-/** Fixed-window request counters (rate limits); documents expire on their own. */
-const RateLimit = make('RateLimit', 'rate_limits', {
-  _id: String,
-  count: { type: Number, default: 0 },
-  expiresAt: Date,
-}, [[{ expiresAt: 1 }, { expireAfterSeconds: 0 }]]);
-
 /** Public company / team content, edited from the admin site. _id = company | team. */
 const Content = make('Content', 'contents', { _id: String, data: Schema.Types.Mixed, updatedAt: { type: Date, default: Date.now } });
 
@@ -45,4 +38,4 @@ const Snapshot = make('Snapshot', 'metric_snapshots', {
   at: { type: Date, default: Date.now },
 }, [[{ month: 1, entity: 1 }]]);
 
-module.exports = { Counter, Idempotency, RateLimit, Content, Setting, Snapshot };
+module.exports = { Counter, Idempotency, Content, Setting, Snapshot };

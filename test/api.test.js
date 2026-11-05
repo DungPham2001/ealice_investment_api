@@ -15,11 +15,10 @@ const YEAR = Number(T.slice(0, 4));
 const entity = (o = {}) => create('entities', { label: 'Entity A', type: 'LLC', status: 'Active', ...o });
 const property = (o = {}) => create('properties', { name: 'Orchid Court', type: 'Multifamily', area: 'Orlando, 32801', units: 24, occupied: 22, status: 'Owned', price: 6200000, rev: 100000, opex: 39500, ...o });
 
-test('install id is required, health is open, unknown routes use the error shape', async () => {
+test('open API: no identity headers needed, unknown routes use the error shape', async () => {
   await request(app).get('/health').expect(200);
-  const no = await request(app).get('/v1/entities').expect(403);
-  assert.equal(no.body.error.code, 'forbidden');
-  await request(app).get('/v1/entities').set('X-Install-Id', 'nothex').expect(403);
+  assert.equal((await request(app).get('/v1/entities').expect(200)).body.total, 0);
+  await request(app).post('/v1/watchlist').send({ name: 'no headers', status: 'Watching' }).expect(201);
   const nf = await api.get('nothing-here').expect(404);
   assert.equal(nf.body.error.code, 'not_found');
 });
@@ -233,16 +232,6 @@ test('idempotency: same key returns the original response, no duplicate', async 
   assert.equal((await api.get('tasks').expect(200)).body.total, 1);
   await api.post('tasks', { title: '' }, 'key-2').expect(422);
   await api.post('tasks', { title: 'ok', due: T, priority: 'Normal', status: 'To do' }, 'key-2').expect(201);
-});
-
-test('rate limits: 12 deletes / 10 min -> 429 + Retry-After; counters are per install', async () => {
-  const ids = [];
-  for (let i = 0; i < 13; i++) ids.push((await create('watchlist', { name: `w${i}`, status: 'Watching' })).id);
-  for (let i = 0; i < 12; i++) await api.del(`watchlist/${ids[i]}`).expect(204);
-  const res = await api.del(`watchlist/${ids[12]}`).expect(429);
-  assert.equal(res.body.error.code, 'rate_limited');
-  assert.ok(Number(res.headers['retry-after']) > 0);
-  assert.equal((await api.get('watchlist').expect(200)).body.total, 1, 'reads are not limited');
 });
 
 test('auto queue items (handoff §6)', async () => {

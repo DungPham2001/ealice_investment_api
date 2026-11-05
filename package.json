@@ -9,6 +9,7 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "db:init": "node scripts/db-init.js",
+    "seed:sample": "node scripts/seed-sample.js",
     "test": "node --test --test-concurrency=1 test/*.test.js"
   },
   "dependencies": {

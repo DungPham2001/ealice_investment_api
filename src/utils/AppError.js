@@ -1,6 +1,6 @@
 /**
  * Error body of the API (handoff §2): { error: { code, message, fields? } }.
- * codes: validation_failed 422, conflict 409, not_found 404, rate_limited 429, forbidden 403
+ * codes: validation_failed 422, conflict 409, not_found 404, forbidden 403
  * (+ locked 423, precondition_required 428, bad_request 400, payload_too_large 413).
  */
 class AppError extends Error {

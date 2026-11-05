@@ -33,9 +33,7 @@ function errorHandler(err, _req, res, _next) {
     message = config.env === 'production' ? 'Something went wrong on our side. Please try again in a few minutes.' : err.message;
     extra = {};
   }
-  if (status === 429 && extra.retryAfter) res.set('Retry-After', String(extra.retryAfter));
-  const { retryAfter, ...rest } = extra; // eslint-disable-line no-unused-vars
-  res.status(status).json({ error: { code: code || 'error', message, ...rest } });
+  res.status(status).json({ error: { code: code || 'error', message, ...extra } });
 }
 
 module.exports = { notFound, errorHandler };

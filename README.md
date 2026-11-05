@@ -18,7 +18,7 @@ npm test                 # replica set in-memory (dùng mongod local nếu có)
 | `src/resources/index.js` | 30 resource: trường, enum, required, quy tắc xóa (`cascade/unlink/restrict`), trường server tính |
 | `src/core/` | Engine: registry, validate, create/update/delete (+ khóa kỳ, cascade, transaction), list/search/cursor, router |
 | `src/services/` | `queue.js` (auto queue §6), `reports.js` (dashboard/series/highlights/metrics/map/calendar §7), `content.js` (public §8), `jobs.js` (cron hằng ngày) |
-| `src/middleware/` | `X-Install-Id` + `X-Attestation`, rate limit (Mongo), Idempotency-Key, lỗi `{error:{code,message,fields}}` |
+| `src/middleware/` | không cần đăng nhập/mã thiết bị; Idempotency-Key, lỗi `{error:{code,message,fields}}` |
 | `src/lib/guard.js` | Lọc dữ liệu nhạy cảm (SSN, EIN, thẻ, số tài khoản, email, điện thoại) |
 
 ## Quyết định khi handoff chưa nói rõ
@@ -30,9 +30,9 @@ npm test                 # replica set in-memory (dùng mongod local nếu có)
 * **Dashboard** không trả `null` (0 khi không có dữ liệu; `renewalRate` mặc định 72, `liquidity.minimum` mặc định 9). `liquidity.months` = tiền mặt tương đương ÷ tổng chi trong các cash-flow (lọc theo `entity` nếu có). `leases.expiringIn60Days` bỏ qua hợp đồng `Renewed/Terminated` (như rule queue).
 * **`/reports/series`**: lịch sử lấy từ `metric_snapshots` (cron ghi mỗi ngày, tháng cũ giữ giá trị cuối tháng); tháng chưa có snapshot trả `null`, điểm cuối luôn là giá trị hiện tại. Metric: `occupancy|noiMargin|revenue|lossRate`.
 * **Khóa kỳ (423)**: `cash-flows` (theo `date`) và `rent-collections` (theo `month`) khi `closedBefore` được đặt qua `PUT /v1/admin/closed-before` (header `X-Admin-Key`). Admin tối thiểu: `PUT /v1/admin/public/{company|team}`.
-* **Attestation**: `ATTESTATION_REQUIRED=true` mới bắt buộc `X-Attestation` khi ghi, và hiện **chỉ kiểm tra có header** — cần nối Google Play Integrity vào `verifyAttestation` (`src/middleware/context.js`) trước khi coi là bảo mật.
-* **Rate limit** (Mongo, theo install id và IP): ghi 120/phút, xóa 12/10 phút, tạo 500/ngày; trả `429 rate_limited` + `Retry-After`. Chưa có endpoint export nên chưa có giới hạn 5 export/ngày.
-* Chưa làm: bộ lọc từ khóa nhạy cảm (chỉ regex), chặn install id vi phạm, auto queue cho decision/risk review (handoff ghi "chưa implement ở client").
+* **Không xác thực**: API mở hoàn toàn, không cần `X-Install-Id` hay `X-Attestation`, không rate limit (khác handoff §2). Chỉ `/v1/admin/*` (`X-Admin-Key`) và `/v1/jobs/daily` (`CRON_SECRET`) có khóa.
+* **Không giới hạn tốc độ / số lượng**: không có rate limit hay giới hạn tạo mỗi ngày (chỉ còn các giới hạn dữ liệu của handoff §5: độ dài chuỗi, khoảng số, enum).
+* Chưa làm: bộ lọc từ khóa nhạy cảm (chỉ regex), auto queue cho decision/risk review (handoff ghi "chưa implement ở client").
 
 ## Deploy (Vercel)
 

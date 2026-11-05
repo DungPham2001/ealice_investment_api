@@ -15,7 +15,6 @@ const { randomUUID } = require('crypto');
 const app = require('../src/app');
 
 let rs;
-const INSTALL = 'a1b2c3d4e5f60718';
 
 async function start() {
   rs = await MongoMemoryReplSet.create({ replSet: { count: 1, configSettings: { electionTimeoutMillis: 10000 } } });
@@ -30,9 +29,9 @@ async function reset() {
   for (const c of await mongoose.connection.db.collections()) await c.deleteMany({});
 }
 
-const h = (r, install = INSTALL) => r.set('X-Install-Id', install).set('X-Forwarded-For', '10.0.0.1');
+const h = (r) => r.set('X-Forwarded-For', '10.0.0.1');
 const api = {
-  get: (p, install) => h(request(app).get(`/v1/${p}`), install),
+  get: (p) => h(request(app).get(`/v1/${p}`)),
   post: (p, body, key) => { const r = h(request(app).post(`/v1/${p}`)).send(body || {}); return key ? r.set('Idempotency-Key', key) : r; },
   patch: (p, body, version) => { const r = h(request(app).patch(`/v1/${p}`)).send(body); return version === undefined ? r : r.set('If-Match', `"${version}"`); },
   put: (p, body) => h(request(app).put(`/v1/${p}`)).send(body),
@@ -49,4 +48,4 @@ async function create(path, body) {
   return res.body;
 }
 
-module.exports = { start, stop, reset, api, admin, create, app, INSTALL };
+module.exports = { start, stop, reset, api, admin, create, app };
