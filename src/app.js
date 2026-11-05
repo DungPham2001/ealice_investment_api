@@ -7,7 +7,7 @@ const config = require('./config');
 const { context } = require('./middleware/context');
 const { idempotency } = require('./middleware/idempotency');
 const { notFound, errorHandler } = require('./middleware/errors');
-const { api, jobs } = require('./routes');
+const api = require('./routes');
 
 const app = express();
 
@@ -22,7 +22,6 @@ app.use(express.json({ limit: '50mb' }));
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
-app.use('/v1', jobs);
 app.use('/v1', context, idempotency, api);
 
 app.use(notFound);

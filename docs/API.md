@@ -1,6 +1,6 @@
 # EALICEA'S LLC API — integration guide for the Flutter app
 
-Base URL: `https://<your-vercel-domain>/v1` (health check without prefix: `GET /health`).
+Base URL: **`https://ealice-investment-api.vercel.app/v1`** (health check without prefix: `GET https://ealice-investment-api.vercel.app/health`).
 Field names, enum strings and required flags of every resource are exactly those of `api-handoff.md` §4. This file lists the endpoints and what the server does on top of them.
 
 ## 1. Headers
@@ -33,7 +33,6 @@ The API is **open**: no login, no install id, no attestation token. Only the hea
 | HTTP | `code` | Meaning / extras |
 |---|---|---|
 | 400 | `bad_request` | invalid JSON / body not an object |
-| 403 | `forbidden` | missing/invalid `X-Admin-Key` on `/admin/*` (not used by the app) |
 | 404 | `not_found` | |
 | 409 | `conflict` | version mismatch → `error.current` holds the latest record (reopen it); delete blocked → `error.references` |
 | 413 | `payload_too_large` | |
@@ -120,7 +119,7 @@ The server creates/reopens/closes `queue-items` with `auto: true` when leases, w
 | Endpoint | Query | Returns |
 |---|---|---|
 | `GET /v1/reports/dashboard` | `entity` (optional id) | the dashboard object of handoff §7.1 (always numbers, no nulls) |
-| `GET /v1/reports/series` | `metric=occupancy\|noiMargin\|revenue\|lossRate`, `period=month\|quarter\|year`, `entity` | `{ metric, period, labels[], values[] }` — 12 / 8 / 5 points, last = current; `null` where no history exists yet |
+| `GET /v1/reports/series` | `metric=occupancy\|noiMargin\|revenue\|lossRate` (default `occupancy`), `period=month\|quarter\|year`, `entity` | `{ metric, period, labels[], values[] }` — 12 / 8 / 5 points, last = current; `null` where no history exists yet |
 | `GET /v1/reports/highlights` | `period=month\|quarter\|year` | `{ period, from, to, topProperties[], needAttention[], leases{new,renewed}, avgVacancyDays, workOrdersClosed, dealsCreated, renovations[], goals[], milestones[] }` |
 | `GET /v1/reports/properties/metrics` | `ids=PRO-0001,PRO-0002` (omit = all) | `{ items: [{ id, name, occupancy, noiMargin, opexRatio, ltv, dscr, avgVacancyDays, openWorkOrders, capexWithin3y, scores{occupancy,noi,expenses,maintenance,capex,dscr}, score }] }` |
 | `GET /v1/reports/map` | — | `{ items: [{ city, properties, units, occupancy, share }] }` (no addresses/coordinates) |
@@ -135,15 +134,18 @@ Calendar `kind`: `lease-end`, `loan-maturity`, `work-order-due`, `renovation-end
 | `GET /v1/public/company` | `name, address, phone, email, website` (+ any extra fields the admin site filled in). Fields without data are omitted: hide them in the UI |
 | `GET /v1/public/team` | `{ "items": [...] }` — `{}` while empty |
 
-## 6. Not for the app (server / admin only)
+## 6. Server / admin endpoints (also open)
 
-* `GET|PUT /v1/jobs/daily` — Vercel Cron (`Authorization: Bearer <CRON_SECRET>`).
-* `PUT /v1/admin/public/{company|team}`, `GET|PUT /v1/admin/closed-before` — header `X-Admin-Key`.
+No keys are needed for these either; the app normally does not call them.
+
+* `GET /v1` — index of every endpoint.
+* `GET|PUT /v1/jobs/daily` — daily sync (auto queue items, monthly snapshot). Vercel Cron calls it once a day.
+* `PUT /v1/admin/public/{company|team}` — edit the public content. `GET|PUT /v1/admin/closed-before` — read/set the closed period (`{ "closedBefore": "YYYY-MM-DD" | null }`).
 
 ## 7. Example
 
 ```http
-POST /v1/properties
+POST https://ealice-investment-api.vercel.app/v1/properties
 Idempotency-Key: 6f1c0c1e-6b0e-4f9e-9d57-2f0f9a8d1c11
 Content-Type: application/json
 
@@ -157,7 +159,7 @@ ETag: "1"
   "occupancy": 91.7, "noiMargin": 60.5, "opexRatio": 39.5, "createdBy": "Anonymous", "...": "..." }
 ```
 ```http
-PATCH /v1/properties/PRO-0001
+PATCH https://ealice-investment-api.vercel.app/v1/properties/PRO-0001
 If-Match: "1"
 
 { "status": "For sale" }

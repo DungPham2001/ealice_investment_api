@@ -8,6 +8,4 @@ module.exports = {
   mongoUri: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/ealicea_investment',
   corsOrigins: (process.env.CORS_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean),
   timezone: process.env.TIMEZONE || 'America/New_York',
-  adminKey: process.env.ADMIN_KEY || '',
-  cronSecret: process.env.CRON_SECRET || '',
 };

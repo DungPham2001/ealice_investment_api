@@ -29,11 +29,10 @@ npm test                 # replica set in-memory (dùng mongod local nếu có)
 * **Tiền** lưu dạng số nguyên cent + `currency: USD`, API trả USD thập phân.
 * **Dashboard** không trả `null` (0 khi không có dữ liệu; `renewalRate` mặc định 72, `liquidity.minimum` mặc định 9). `liquidity.months` = tiền mặt tương đương ÷ tổng chi trong các cash-flow (lọc theo `entity` nếu có). `leases.expiringIn60Days` bỏ qua hợp đồng `Renewed/Terminated` (như rule queue).
 * **`/reports/series`**: lịch sử lấy từ `metric_snapshots` (cron ghi mỗi ngày, tháng cũ giữ giá trị cuối tháng); tháng chưa có snapshot trả `null`, điểm cuối luôn là giá trị hiện tại. Metric: `occupancy|noiMargin|revenue|lossRate`.
-* **Khóa kỳ (423)**: `cash-flows` (theo `date`) và `rent-collections` (theo `month`) khi `closedBefore` được đặt qua `PUT /v1/admin/closed-before` (header `X-Admin-Key`). Admin tối thiểu: `PUT /v1/admin/public/{company|team}`.
-* **Không xác thực**: API mở hoàn toàn, không cần `X-Install-Id` hay `X-Attestation`, không rate limit (khác handoff §2). Chỉ `/v1/admin/*` (`X-Admin-Key`) và `/v1/jobs/daily` (`CRON_SECRET`) có khóa.
-* **Không giới hạn tốc độ / số lượng**: không có rate limit hay giới hạn tạo mỗi ngày (chỉ còn các giới hạn dữ liệu của handoff §5: độ dài chuỗi, khoảng số, enum).
+* **Khóa kỳ (423)**: `cash-flows` (theo `date`) và `rent-collections` (theo `month`) khi `closedBefore` được đặt qua `PUT /v1/admin/closed-before`. Admin tối thiểu: `PUT /v1/admin/public/{company|team}`.
+* **Không xác thực, không giới hạn**: mọi endpoint (kể cả `/v1/admin/*` và `/v1/jobs/daily`) đều mở, không cần key/header định danh, không rate limit (khác handoff §2/§9). Mọi `GET` đều trả data; `GET /v1` liệt kê toàn bộ endpoint.
 * Chưa làm: bộ lọc từ khóa nhạy cảm (chỉ regex), auto queue cho decision/risk review (handoff ghi "chưa implement ở client").
 
 ## Deploy (Vercel)
 
-`vercel.json` chuyển mọi request vào `api/index.js` (cache kết nối MongoDB). Đặt `MONGODB_URI`, `ADMIN_KEY`, `CRON_SECRET`, rồi chạy `npm run db:init` một lần với đúng `MONGODB_URI`. Vercel Cron gọi `/v1/jobs/daily` mỗi ngày (đồng bộ auto queue + snapshot tháng).
+`vercel.json` chuyển mọi request vào `api/index.js` (cache kết nối MongoDB). Chỉ cần đặt `MONGODB_URI` (và `TIMEZONE` nếu muốn), rồi chạy `npm run db:init` một lần với đúng `MONGODB_URI`. Vercel Cron gọi `/v1/jobs/daily` mỗi ngày (đồng bộ auto queue + snapshot tháng).

@@ -288,7 +288,6 @@ test('period lock (423) on cash flows and rent collections', async () => {
   const old = await create('cash-flows', { dir: 'Expense', category: 'Insurance', entity: e.id, amount: 10, date: '2026-01-15' });
   const rent = await create('rent-collections', { month: '2026-01', unit: 'A-1', status: 'Unpaid' });
   const fresh = await create('cash-flows', { dir: 'Income', category: 'Rent', entity: e.id, amount: 10, date: '2026-09-15' });
-  await api.put('admin/closed-before', { closedBefore: '2026-06-01' }).expect(403);
   assert.equal((await admin.put('admin/closed-before', { closedBefore: '2026-06-01' }).expect(200)).body.closedBefore, '2026-06-01');
   const locked = (await api.patch(`cash-flows/${old.id}`, { amount: 11 }, 1).expect(423)).body.error;
   assert.equal(locked.code, 'locked');
@@ -402,10 +401,10 @@ test('series, highlights, property metrics, map, calendar', async () => {
   assert.equal((await api.get('reports/series?metric=revenue').expect(200)).body.values[11], 150000);
   assert.equal((await api.get(`reports/series?metric=occupancy&entity=${e.id}`).expect(200)).body.values[11], 90);
   await api.get('reports/series?metric=x').expect(422);
+  assert.equal((await api.get('reports/series').expect(200)).body.metric, 'occupancy', 'metric defaults to occupancy');
 
   // the daily job freezes the month: a later change does not rewrite the stored figure
-  await request(app).get('/v1/jobs/daily').expect(403);
-  await request(app).get('/v1/jobs/daily').set('X-Admin-Key', 'test-admin').expect(200);
+  await request(app).get('/v1/jobs/daily').expect(200);
   const snap = (await api.get('reports/series?metric=occupancy').expect(200)).body;
   assert.equal(snap.values[11], 82.5);
 
@@ -439,12 +438,21 @@ test('public content: omit empty fields, admin edit', async () => {
   assert.equal(c.name, "EALICEA'S INVESTMENTS LLC");
   assert.equal(c.phone, '+1 730 283 6523');
   assert.equal(c.employees, undefined);
-  await api.put('admin/public/company', { name: 'X' }).expect(403);
   await admin.put('admin/public/company', { name: "EALICEA'S INVESTMENTS LLC", founded: 2015, hours: '', departments: [], values: ['Integrity'] }).expect(200);
   const c2 = (await api.get('public/company').expect(200)).body;
   assert.deepEqual(Object.keys(c2).sort(), ['founded', 'name', 'values']);
   assert.deepEqual((await api.get('public/team').expect(200)).body, {});
   await admin.put('admin/public/nope', {}).expect(422);
+});
+
+test('index lists the endpoints and every GET answers with data', async () => {
+  const idx = (await api.get('').expect(200)).body;
+  assert.equal(idx.resources.length, 30);
+  for (const p of [...idx.resources, ...idx.reports, ...idx.public, '/v1/admin/closed-before', '/v1/jobs/daily']) {
+    const url = p.replace('/v1/', '');
+    const res = await api.get(url).expect(200);
+    assert.ok(res.body && typeof res.body === 'object', url);
+  }
 });
 
 test('body problems use the error shape', async () => {

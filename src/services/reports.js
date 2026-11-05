@@ -148,7 +148,7 @@ async function liveMetrics(entity) {
   return { occupancy, noiMargin: r1(ratio(rev - sum(props, (p) => p.opex), rev)), revenue: round(rev, 2), lossRate: r1(100 - occupancy + Math.max(0, underCollection)) };
 }
 
-async function series({ metric, period = 'month', entity } = {}) {
+async function series({ metric = 'occupancy', period = 'month', entity } = {}) {
   if (!METRICS.includes(metric)) throw invalid({ metric: `must be one of: ${METRICS.join(', ')}` });
   if (!D.PERIODS.includes(period)) throw invalid({ period: `must be one of: ${D.PERIODS.join(', ')}` });
   await entityFilter(entity);

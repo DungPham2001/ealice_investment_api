@@ -1,5 +1,4 @@
 process.env.NODE_ENV = 'test';
-process.env.ADMIN_KEY = 'test-admin';
 const fs = require('fs');
 // Offline machines: reuse a locally installed mongod instead of downloading one.
 if (!process.env.MONGOMS_SYSTEM_BINARY && fs.existsSync('/opt/homebrew/bin/mongod')) {
@@ -37,9 +36,7 @@ const api = {
   put: (p, body) => h(request(app).put(`/v1/${p}`)).send(body),
   del: (p) => h(request(app).delete(`/v1/${p}`)),
 };
-const admin = {
-  put: (p, body) => api.put(p, body).set('X-Admin-Key', 'test-admin'),
-};
+const admin = { put: (p, body) => api.put(p, body) };
 
 /** POST that must succeed; returns the body. */
 async function create(path, body) {
