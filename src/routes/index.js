@@ -18,7 +18,7 @@ api.get('/', ok(() => ({
   name: "EALICEA'S LLC API",
   version: 'v1',
   resources: registry.all().map((c) => `/v1/${c.path}`),
-  reports: ['/v1/reports/dashboard', '/v1/reports/series', '/v1/reports/highlights', '/v1/reports/properties/metrics', '/v1/reports/map', '/v1/calendar'],
+  reports: ['/v1/reports/dashboard', '/v1/reports/series', '/v1/reports/revenue', '/v1/reports/highlights', '/v1/reports/properties/metrics', '/v1/reports/map', '/v1/calendar'],
   public: ['/v1/public/company', '/v1/public/team'],
   admin: ['/v1/admin/closed-before', '/v1/admin/public/{company|team}'],
   jobs: ['/v1/jobs/daily'],
@@ -27,6 +27,8 @@ api.get('/', ok(() => ({
 // reports (handoff §7), calendar, public content (§8), admin (§9)
 api.get('/reports/dashboard', ok((req) => reports.dashboard(req.query)));
 api.get('/reports/series', ok((req) => reports.series(req.query)));
+// revenue chart: same series as /reports/series?metric=revenue (monthly revenue of the properties)
+api.get('/reports/revenue', ok((req) => reports.series({ ...req.query, metric: 'revenue' })));
 api.get('/reports/highlights', ok((req) => reports.highlights(req.query)));
 api.get('/reports/properties/metrics', ok((req) => reports.propertyMetrics(req.query)));
 api.get('/reports/map', ok(() => reports.map()));

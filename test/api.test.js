@@ -400,6 +400,10 @@ test('series, highlights, property metrics, map, calendar', async () => {
   assert.equal((await api.get('reports/series?metric=noiMargin&period=year').expect(200)).body.labels.at(-1), String(YEAR));
   assert.equal((await api.get('reports/series?metric=revenue').expect(200)).body.values[11], 150000);
   assert.equal((await api.get(`reports/series?metric=occupancy&entity=${e.id}`).expect(200)).body.values[11], 90);
+  const rev = (await api.get('reports/revenue?period=quarter').expect(200)).body;
+  assert.deepEqual([rev.metric, rev.period, rev.labels.length, rev.values.at(-1)], ['revenue', 'quarter', 8, 150000]);
+  assert.equal((await api.get('reports/revenue').expect(200)).body.values.length, 12);
+  assert.equal((await api.get(`reports/revenue?entity=${e.id}`).expect(200)).body.values[11], 100000);
   await api.get('reports/series?metric=x').expect(422);
   assert.equal((await api.get('reports/series').expect(200)).body.metric, 'occupancy', 'metric defaults to occupancy');
 

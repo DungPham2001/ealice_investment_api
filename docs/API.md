@@ -120,6 +120,7 @@ The server creates/reopens/closes `queue-items` with `auto: true` when leases, w
 |---|---|---|
 | `GET /v1/reports/dashboard` | `entity` (optional id) | the dashboard object of handoff §7.1 (always numbers, no nulls) |
 | `GET /v1/reports/series` | `metric=occupancy\|noiMargin\|revenue\|lossRate` (default `occupancy`), `period=month\|quarter\|year`, `entity` | `{ metric, period, labels[], values[] }` — 12 / 8 / 5 points, last = current; `null` where no history exists yet |
+| `GET /v1/reports/revenue` | `period=month\|quarter\|year` (default `month`), `entity` | revenue chart: `{ metric: "revenue", period, labels[], values[] }` — same as `series?metric=revenue`; values are USD, monthly revenue of non-sold properties, `null` where no history yet |
 | `GET /v1/reports/highlights` | `period=month\|quarter\|year` | `{ period, from, to, topProperties[], needAttention[], leases{new,renewed}, avgVacancyDays, workOrdersClosed, dealsCreated, renovations[], goals[], milestones[] }` |
 | `GET /v1/reports/properties/metrics` | `ids=PRO-0001,PRO-0002` (omit = all) | `{ items: [{ id, name, occupancy, noiMargin, opexRatio, ltv, dscr, avgVacancyDays, openWorkOrders, capexWithin3y, scores{occupancy,noi,expenses,maintenance,capex,dscr}, score }] }` |
 | `GET /v1/reports/map` | — | `{ items: [{ city, properties, units, occupancy, share }] }` (no addresses/coordinates) |
